@@ -1,8 +1,63 @@
 # GameOfLifeGpt
 
-Full implementation of game of life in C posix with sdk for graphics.
-This code implement a game of life with 2 states lefe dead and standard rules on an infinite grid with possibility to zoom in and zoom out to and from different part of the grid during evolution.
+Interactive Conway's Game of Life implementation written in portable POSIX C. The engine keeps track of an effectively unbound grid of live cells and provides an interactive terminal renderer that supports panning and zooming during the simulation.
 
-## Feautures provided:
-- adjust evolution time speed as a cli parameter when the program is lunched
-- cli command to import a configuration file with an initialization grid
+## Features
+
+- Adjustable evolution speed via command-line flag.
+- Optional configuration file loader to seed the board with a textual pattern.
+- Interactive terminal controls for panning, zooming, pausing, and stepping.
+- Hash-based sparse grid representation that allows the universe to grow without bounds.
+
+## Build
+
+A standard POSIX toolchain with `gcc` or `clang` is sufficient. Compile the project with:
+
+```sh
+gcc -std=c11 -Wall -Wextra -pedantic src/main.c -o gameoflifegpt
+```
+
+## Usage
+
+```
+./gameoflifegpt [-t delay_ms] [-f file]
+```
+
+- `-t delay_ms` &mdash; milliseconds to wait between generations (default: 200).
+- `-f file` &mdash; path to a pattern file to load before starting the simulation.
+
+### Controls
+
+Once running, use the following keys inside the terminal window:
+
+- `q` &mdash; quit the program.
+- `p` &mdash; pause or resume the automatic evolution.
+- `n` &mdash; advance a single generation while paused.
+- `w`, `a`, `s`, `d` &mdash; pan the view up, left, down, and right.
+- `+`/`=` &mdash; zoom in on the current focus.
+- `-` &mdash; zoom out to show more of the universe.
+- `r` &mdash; reset the view to the origin.
+
+The renderer automatically adapts to the size of the terminal window. Two additional lines beneath the grid display statistics and reminders of the available controls.
+
+### Configuration Files
+
+Configuration files are plain text grids. Every `O`, `X`, `1`, or `o` character is treated as a live cell. Any other character (including `.` and spaces) is ignored and considered dead. Lines beginning with `!` or `#` are treated as comments and skipped. The top-left cell of the file is loaded at coordinate `(0, 0)`.
+
+Example (`glider.txt`):
+
+```
+.O.
+..O
+OOO
+```
+
+Run the glider with:
+
+```sh
+./gameoflifegpt -f glider.txt -t 150
+```
+
+## License
+
+This project is released into the public domain. Use it however you like.
