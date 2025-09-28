@@ -7,28 +7,31 @@ Interactive Conway's Game of Life implementation written in portable POSIX C. Th
 - Adjustable evolution speed via command-line flag.
 - Optional configuration file loader to seed the board with a textual pattern.
 - Interactive terminal controls for panning, zooming, pausing, and stepping.
+- Optional SDL2 graphical renderer with a dark grid and white live cells.
 - Hash-based sparse grid representation that allows the universe to grow without bounds.
 
 ## Build
 
-A standard POSIX toolchain with `gcc` or `clang` is sufficient. Compile the project with:
+A standard POSIX toolchain with `gcc` or `clang` is sufficient. SDL2 development headers are required for the graphical mode.
+Compile the project with:
 
 ```sh
-gcc -std=c11 -Wall -Wextra -pedantic src/main.c -o gameoflifegpt
+gcc -std=c11 -Wall -Wextra -pedantic src/main.c $(sdl2-config --cflags --libs) -o gameoflifegpt
 ```
 
 ## Usage
 
 ```
-./gameoflifegpt [-t delay_ms] [-f file]
+./gameoflifegpt [-t delay_ms] [-f file] [-g]
 ```
 
 - `-t delay_ms` &mdash; milliseconds to wait between generations (default: 200).
 - `-f file` &mdash; path to a pattern file to load before starting the simulation.
+- `-g` &mdash; launch the SDL2 graphical renderer instead of the terminal UI.
 
 ### Controls
 
-Once running, use the following keys inside the terminal window:
+Once running, use the following keys inside the terminal window or SDL2 window:
 
 - `q` &mdash; quit the program.
 - `p` &mdash; pause or resume the automatic evolution.
@@ -38,7 +41,7 @@ Once running, use the following keys inside the terminal window:
 - `-` &mdash; zoom out to show more of the universe.
 - `r` &mdash; reset the view to the origin.
 
-The renderer automatically adapts to the size of the terminal window. Two additional lines beneath the grid display statistics and reminders of the available controls.
+The terminal renderer automatically adapts to the size of the window. Two additional lines beneath the grid display statistics and reminders of the available controls. In graphical mode, the window title shows the same information while the board is drawn with white squares over a dark grid.
 
 ### Configuration Files
 
