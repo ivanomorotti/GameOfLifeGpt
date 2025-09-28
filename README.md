@@ -58,7 +58,21 @@ OOO
 Run the glider with:
 
 ```sh
-./gameoflifegpt -f glider.txt -t 150
+./gameoflifegpt -f patterns/glider.txt -t 150
+```
+
+Additional classic patterns are available under the `patterns/` directory:
+
+- `patterns/blinker.txt` &mdash; the simplest period-2 oscillator.
+- `patterns/toad.txt` &mdash; a small period-2 oscillator that alternates between two 4&times;4 phases.
+- `patterns/beacon.txt` &mdash; two blinking blocks that form a phase-shifting lighthouse effect.
+- `patterns/pulsar.txt` &mdash; a large period-3 oscillator composed of twelve arms.
+- `patterns/gosper_glider_gun.txt` &mdash; the iconic pattern that periodically emits gliders.
+
+Load any of them by passing the desired file to `-f`, for example:
+
+```sh
+./gameoflifegpt -f patterns/gosper_glider_gun.txt -g -t 50
 ```
 
 ## License
