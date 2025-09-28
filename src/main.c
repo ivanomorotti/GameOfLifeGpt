@@ -457,9 +457,23 @@ static void render_state_terminal(const struct life_state *life, const struct vi
 
 static void render_state_sdl(SDL_Renderer *renderer, const struct life_state *life, const struct view_state *view, int window_w, int window_h) {
     const int base_tile_pixels = 32;
-    int tile_pixels = base_tile_pixels / view->scale;
-    if (tile_pixels < 1) {
-        tile_pixels = 1;
+    const int min_distinguishable_pixels = 4;
+    const int threshold_scale = MAX(1, base_tile_pixels / min_distinguishable_pixels);
+
+    int cell_span;
+    int tile_pixels;
+    if (view->scale <= threshold_scale) {
+        cell_span = 1;
+        tile_pixels = base_tile_pixels / view->scale;
+        if (tile_pixels < 1) {
+            tile_pixels = 1;
+        }
+    } else {
+        cell_span = (view->scale + threshold_scale - 1) / threshold_scale;
+        tile_pixels = base_tile_pixels / threshold_scale;
+        if (tile_pixels < 1) {
+            tile_pixels = 1;
+        }
     }
 
     int cols = (window_w + tile_pixels - 1) / tile_pixels;
@@ -480,14 +494,18 @@ static void render_state_sdl(SDL_Renderer *renderer, const struct life_state *li
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < cols; ++col) {
-            int origin_x = view->center_x - half_cols * view->scale + col * view->scale;
-            int origin_y = view->center_y - half_rows * view->scale + row * view->scale;
+            int origin_x = view->center_x - half_cols * cell_span + col * cell_span;
+            int origin_y = view->center_y - half_rows * cell_span + row * cell_span;
             bool alive = false;
-            for (int dy = 0; dy < view->scale && !alive; ++dy) {
-                for (int dx = 0; dx < view->scale; ++dx) {
-                    if (cell_set_contains(&life->live, origin_x + dx, origin_y + dy)) {
-                        alive = true;
-                        break;
+            if (cell_span == 1) {
+                alive = cell_set_contains(&life->live, origin_x, origin_y);
+            } else {
+                for (int dy = 0; dy < cell_span && !alive; ++dy) {
+                    for (int dx = 0; dx < cell_span; ++dx) {
+                        if (cell_set_contains(&life->live, origin_x + dx, origin_y + dy)) {
+                            alive = true;
+                            break;
+                        }
                     }
                 }
             }
