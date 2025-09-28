@@ -21,6 +21,9 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+static const int BASE_TILE_PIXELS = 32;
+static const int MIN_DISTINGUISHABLE_PIXELS = 4;
+
 static struct termios original_termios;
 static bool termios_saved = false;
 
@@ -386,12 +389,16 @@ struct view_state {
     int center_x;
     int center_y;
     int scale;
+    double fractional_x;
+    double fractional_y;
 };
 
 static void view_init(struct view_state *view) {
     view->center_x = 0;
     view->center_y = 0;
     view->scale = 1;
+    view->fractional_x = 0.0;
+    view->fractional_y = 0.0;
 }
 
 static void view_zoom_in(struct view_state *view) {
@@ -407,6 +414,38 @@ static void view_zoom_out(struct view_state *view) {
 static void view_pan(struct view_state *view, int dx, int dy) {
     view->center_x += dx * view->scale;
     view->center_y += dy * view->scale;
+    view->fractional_x = 0.0;
+    view->fractional_y = 0.0;
+}
+
+static void view_pan_pixels(struct view_state *view, double dx_pixels, double dy_pixels) {
+    if (dx_pixels == 0.0 && dy_pixels == 0.0) {
+        return;
+    }
+
+    double scaled_dx = dx_pixels * (double)view->scale / (double)BASE_TILE_PIXELS;
+    double scaled_dy = dy_pixels * (double)view->scale / (double)BASE_TILE_PIXELS;
+
+    view->fractional_x += scaled_dx;
+    view->fractional_y += scaled_dy;
+
+    while (view->fractional_x >= 1.0) {
+        view->center_x += 1;
+        view->fractional_x -= 1.0;
+    }
+    while (view->fractional_x <= -1.0) {
+        view->center_x -= 1;
+        view->fractional_x += 1.0;
+    }
+
+    while (view->fractional_y >= 1.0) {
+        view->center_y += 1;
+        view->fractional_y -= 1.0;
+    }
+    while (view->fractional_y <= -1.0) {
+        view->center_y -= 1;
+        view->fractional_y += 1.0;
+    }
 }
 
 static void clear_screen(void) {
@@ -456,21 +495,19 @@ static void render_state_terminal(const struct life_state *life, const struct vi
 }
 
 static void render_state_sdl(SDL_Renderer *renderer, const struct life_state *life, const struct view_state *view, int window_w, int window_h) {
-    const int base_tile_pixels = 32;
-    const int min_distinguishable_pixels = 4;
-    const int threshold_scale = MAX(1, base_tile_pixels / min_distinguishable_pixels);
+    const int threshold_scale = MAX(1, BASE_TILE_PIXELS / MIN_DISTINGUISHABLE_PIXELS);
 
     int cell_span;
     int tile_pixels;
     if (view->scale <= threshold_scale) {
         cell_span = 1;
-        tile_pixels = base_tile_pixels / view->scale;
+        tile_pixels = BASE_TILE_PIXELS / view->scale;
         if (tile_pixels < 1) {
             tile_pixels = 1;
         }
     } else {
         cell_span = (view->scale + threshold_scale - 1) / threshold_scale;
-        tile_pixels = base_tile_pixels / threshold_scale;
+        tile_pixels = BASE_TILE_PIXELS / threshold_scale;
         if (tile_pixels < 1) {
             tile_pixels = 1;
         }
@@ -633,6 +670,7 @@ static int run_gui(struct life_state *life, int delay_ms) {
     bool paused = false;
     bool single_step = false;
     bool running = true;
+    bool dragging = false;
     char info_message[128] = "Press q to quit, p to pause.";
 
     while (running) {
@@ -663,6 +701,28 @@ static int run_gui(struct life_state *life, int delay_ms) {
                 } else if (key == SDLK_r) {
                     view_init(&view);
                     snprintf(info_message, sizeof(info_message), "View reset to origin");
+                }
+            } else if (event.type == SDL_MOUSEWHEEL) {
+                if (event.wheel.y > 0) {
+                    for (int i = 0; i < event.wheel.y; ++i) {
+                        view_zoom_in(&view);
+                    }
+                } else if (event.wheel.y < 0) {
+                    for (int i = 0; i < -event.wheel.y; ++i) {
+                        view_zoom_out(&view);
+                    }
+                }
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    dragging = true;
+                }
+            } else if (event.type == SDL_MOUSEBUTTONUP) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    dragging = false;
+                }
+            } else if (event.type == SDL_MOUSEMOTION) {
+                if (dragging) {
+                    view_pan_pixels(&view, -(double)event.motion.xrel, -(double)event.motion.yrel);
                 }
             }
         }
